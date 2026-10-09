@@ -136,7 +136,7 @@ def clean():
         for p in (ROOT/folder).rglob('__pycache__'):shutil.rmtree(p)
     for folder in ['manuscript','supplement']:
         for p in (ROOT/folder).rglob('*'):
-            if p.is_file() and (p.suffix in ['.aux','.log','.out','.toc','.fls','.bbl','.blg','.fdb_latexmk'] or p.name.endswith('.synctex.gz')):p.unlink()
+            if p.is_file() and (p.suffix in ['.aux','.log','.out','.toc','.fls','.bbl','.blg','.fdb_latexmk'] or p.name.endswith(('.synctex.gz','Notes.bib'))):p.unlink()
 
 if __name__=='__main__':
     ap=argparse.ArgumentParser();ap.add_argument('action',choices=['validate','figures','build','clean']);args=ap.parse_args()

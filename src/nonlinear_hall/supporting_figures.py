@@ -10,7 +10,7 @@ LABELS={'maximum-omission':'Scalar dominated','10pct-crossover':'Shape dominated
 
 def make_supporting_figures(root):
     root=Path(root);base=data=root/'data/processed';dest=root/'figures/supplement';dest.mkdir(parents=True,exist_ok=True)
-    plt.rcParams.update({'font.family':'DejaVu Sans','font.size':9,'axes.titlesize':10,'axes.labelsize':9,'legend.fontsize':8,'xtick.labelsize':8,'ytick.labelsize':8,'pdf.fonttype':42,'savefig.dpi':220})
+    plt.rcParams.update({'font.family':'DejaVu Sans','font.size':9,'axes.titlesize':10,'axes.labelsize':9,'legend.fontsize':8,'xtick.labelsize':8.5,'ytick.labelsize':8.5,'pdf.fonttype':42,'savefig.dpi':220})
     manifest=[]
     def rows(name):return read_csv(base/name)
     load=rows
@@ -21,8 +21,8 @@ def make_supporting_figures(root):
     weak=load('weak_coupling_remainder.csv');fig,axes=plt.subplots(1,3,figsize=(7.2,3),layout='constrained')
     for i,(key,title) in enumerate([('eta',r'$\eta$'),('rho_norm',r'$\|\eta R_0K\|_2$'),('rho_drive',r'$\eta\|R_0Kg_0\|/\|g_0\|$')]):
         for kernel,col,mark in [('gaussian',COLORS[0],'o'),('lorentzian',COLORS[1],'x')]:
-            r=[r for r in weak if r['kernel']==kernel and r['eta']>0 and r['first_order_error']>=1e-10];axes[i].loglog([x[key] for x in r],[x['first_order_error'] for x in r],mark,color=col,ms=2,alpha=.3,label=kernel.capitalize())
-        axes[i].set(xlabel=title,ylabel='First-order relative error',title=f'({chr(97+i)}) Perturbative organization');axes[i].axhline(.01,c='.4',ls=':');axes[i].legend(markerscale=2,fontsize=6)
+            r=[r for r in weak if r['kernel']==kernel and r['eta']>0 and r['first_order_error']>=1e-10];axes[i].loglog([x[key] for x in r],[x['first_order_error'] for x in r],mark,color=col,ms=3,alpha=.55,label=kernel.capitalize())
+        axes[i].set(xlabel=title,ylabel='First-order relative error',title=f'({chr(97+i)}) Perturbative organization');axes[i].axhline(.01,c='.4',ls=':');axes[i].legend(markerscale=2,fontsize=8.5)
     finish(fig,'figure_S2_weak_control',[data/'weak_coupling_remainder.csv'])
 
     conv=load('successive_resolution.csv');fig,ax=plt.subplots(figsize=(6,3.1),layout='constrained')
@@ -32,10 +32,10 @@ def make_supporting_figures(root):
     finish(fig,'figure_S4_successive_convergence',[data/'successive_resolution.csv'])
 
     mass=[r for r in rows('final_mass_scaling.csv') if r['label']=='weak'];fig,axes=plt.subplots(2,2,figsize=(7.1,5.15),layout='constrained')
-    for eta,col in [(0,COLORS[0]),(.001,COLORS[1])]:
+    for eta,col,style in [(0,COLORS[0],'-o'),(.001,COLORS[1],'--s')]:
         rr=[r for r in mass if r['eta']==eta and r['m_P']>0];x=[r['m_P'] for r in rr]
         for ax,key,title in zip(axes.flat,['H_P','H_P_over_m','valley_polarization'],['(a) Passive Hall response','(b) Finite small-mass susceptibility','(c) Passive valley displacement']):
-            ax.plot(x,[r[key] for r in rr],'-o',ms=3,color=col,label=rf'$\eta={eta:g}$');ax.set_xscale('log');ax.set_xlabel(r'$m_P/m_A$');ax.set_title(title,loc='left',fontsize=9)
+            ax.plot(x,[r[key] for r in rr],style,ms=3,color=col,label=rf'$\eta={eta:g}$');ax.set_xscale('log');ax.set_xlabel(r'$m_P/m_A$');ax.set_title(title,loc='left',fontsize=9)
     for ax,yl in zip([axes[0,0],axes[0,1],axes[1,0]],[r'$H_P$',r'$H_P/m_P$',r'$N_+-N_-$']):ax.set_ylabel(yl)
     axes[0,0].legend(frameon=False)
     r=next(r for r in mass if r['eta']==.001 and r['m_P']==.01);ax=axes[1,1];keys=['DIRECT_PASSIVE','ACTIVE_COUPLING','PASSIVE_COUPLING'];values=[r[k] for k in keys]

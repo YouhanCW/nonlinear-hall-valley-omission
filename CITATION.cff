@@ -1,17 +1,20 @@
 cff-version: 1.2.0
-message: "Citation metadata pending confirmed authorship and deposition. Use this title and the scientific run fingerprint in DATA_MANIFEST.md for internal identification. See HUMAN_TODO.md for the remaining publication metadata."
-title: "When Can Hall-Silent Valleys Be Neglected in Anomalous-Velocity Nonlinear Hall Transport?"
+message: "Cite this software using the confirmed author, title and version below, and identify the full Git commit from prb-submission. Zenodo deposition and a DOI remain pending."
+title: "Nonlinear Hall Transport: Passive-Valley Omission — Research Code and Numerical Data"
 type: software
-repository-code: "https://github.com/03102000369/nonlinear-hall-valley-omission"
+repository-code: "https://github.com/YouhanCW/nonlinear-hall-valley-omission"
 version: 1.1.0
-license: 0BSD
+authors:
+  - family-names: Wanigasuriya
+    given-names: Youhan
+    affiliation: "Department of Chemistry, Faculty of Science, University of Colombo, Colombo 00300, Sri Lanka"
+    email: "youhanwanigasuriya@gmail.com"
+    orcid: "https://orcid.org/0009-0005-8443-837X"
 abstract: "A four-valley anomalous-velocity transport model with exact sector elimination, a physical current/population reduction, physical M1--M4 ablation, invariant-subspace leakage, fixed-budget cancellation and finite-mass valley-polarization controls."
 keywords:
   - nonlinear Hall transport
   - multivalley Boltzmann kinetics
   - physical mode reduction
   - observable-specific omission
-# Author names, preferred manuscript citation and deposition fields are intentionally
-# absent until confirmed; see HUMAN_TODO.md. No author identity is inferred.
-
-# DOI_PENDING: add verified deposition metadata after public release.
+# The author has not granted an additional software license.
+# No formal release date or DOI is assigned; record the exact commit externally.

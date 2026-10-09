@@ -13,6 +13,18 @@ NAMES = ('active_reference_current', 'active_valley_distortion',
          'passive_current', 'passive_valley_population')
 
 
+def conditioned_ratio(numerator, denominator, scale=0.):
+    """Return NaN for an undefined ratio; never turn a vanishing signal into accuracy.
+
+    ``scale`` has the denominator's units. For Hall functionals it is the
+    Cauchy bound, so symmetry-enforced or cancellation zeros are tested relative
+    to their natural signal scale. Absolute differences remain available.
+    """
+    if not np.isfinite(denominator) or abs(denominator) <= 1e-12*max(scale, np.finfo(float).tiny):
+        return np.nan
+    return numerator/denominator
+
+
 def basis(system):
     n = system.p.n
     raw = np.column_stack((np.r_[system.g0[:n], np.zeros(n)],
@@ -37,7 +49,9 @@ def observe(system, g):
     H = h @ g; sig = b @ g; sigA = b[:n] @ g[:n]
     D = h @ b; W = b @ b; WA = b[:n] @ b[:n]
     return dict(H=H, sigma_xx=sig, chi_yxx=-H/2,
-                Q=H*W/(sig*D), Q_A=H*WA/(sigA*D), sigma_A=sigA)
+                Q=conditioned_ratio(H*W, sig*D, norm(b)*norm(g)*norm(h)*norm(b)),
+                Q_A=conditioned_ratio(H*WA, sigA*D, norm(b[:n])*norm(g[:n])*norm(h)*norm(b)),
+                sigma_A=sigA)
 
 
 def hierarchy(system, eta, omega=0., prepared=None):
@@ -46,6 +60,9 @@ def hierarchy(system, eta, omega=0., prepared=None):
     A = L + 1j*omega*np.eye(len(L)) if omega else L
     sol = factor_solve(A, np.column_stack((system.b, system.h)), omega)
     g, z = sol[:, 0], sol[:, 1]; full = observe(system, g)
+    signal_scales = dict(H=norm(system.h)*norm(g), chi_yxx=norm(system.h)*norm(g)/2,
+                         sigma_xx=norm(system.b)*norm(g),
+                         sigma_A=norm(system.b[:system.p.n])*norm(g[:system.p.n]))
     LU = L @ U; K = U.T @ LU; d = U.T @ system.b
     hs = []; reconstructed = []
     previous = dict.fromkeys(full, 0.)
@@ -54,11 +71,12 @@ def hierarchy(system, eta, omega=0., prepared=None):
         x = factor_solve(km, d[:m], omega); gm = U[:, :m] @ x
         row = dict(dimension=m, **observe(system, gm))
         for key in full:
-            row['error_'+key] = abs(row[key]-full[key])/abs(full[key])
+            row['error_'+key] = conditioned_ratio(abs(row[key]-full[key]), abs(full[key]), signal_scales.get(key, 0.))
             row['increment_'+key] = row[key]-previous[key]
         row['distribution_error'] = norm(gm-g)/norm(g)
         row['active_distribution_error'] = norm(gm[:system.p.n]-g[:system.p.n])/norm(g[:system.p.n])
-        row['H_error_over_H0'] = abs(row['H']-full['H'])/abs(system.H0)
+        row['H_error_over_H0'] = conditioned_ratio(abs(row['H']-full['H']), abs(system.H0),
+                                                  norm(system.ha)*norm(system.g0[:system.p.n]))
         row['reduced_equation_residual'] = norm(km@x-d[:m])/norm(d[:m])
         hs.append(row); reconstructed.append(gm); previous = row
     R = LU-U@K; bperp = system.b-U@d
@@ -67,8 +85,8 @@ def hierarchy(system, eta, omega=0., prepared=None):
     zperp = z-U@(U.T@z)
     dual_x = factor_solve(K+1j*omega*np.eye(4) if omega else K, U.T@system.h, omega)
     dual_residual = system.h-A@(U@dual_x)
-    defect = dict(rho_abs=svdvals(R)[0], rho_rel=svdvals(R)[0]/svdvals(LU)[0],
-                  rho_F_abs=norm(R), rho_F_rel=norm(R)/norm(LU),
+    defect = dict(rho_abs=svdvals(R)[0], rho_rel=conditioned_ratio(svdvals(R)[0],svdvals(LU)[0],norm(L)),
+                  rho_F_abs=norm(R), rho_F_rel=conditioned_ratio(norm(R),norm(LU),norm(L)),
                   drive_projection_relative=norm(bperp)/norm(system.b),
                   solution_residual_relative=norm(residual)/norm(system.b),
                   leakage_forcing_norm=norm(R@x4), drive_miss_norm=norm(bperp),
@@ -80,8 +98,8 @@ def hierarchy(system, eta, omega=0., prepared=None):
                   adjoint_identity_defect=abs(full['H']-hs[-1]['H']-error_identity),
                   adjoint_bound=norm(z)*norm(residual),
                   orthogonal_adjoint_bound=norm(zperp)*norm(residual),
-                  dual_projection_relative=norm(zperp)/norm(z),
-                  dual_residual_relative=norm(dual_residual)/norm(system.h),
+                  dual_projection_relative=conditioned_ratio(norm(zperp),norm(z)),
+                  dual_residual_relative=conditioned_ratio(norm(dual_residual),norm(system.h)),
                   residual_decomposition_defect=norm(residual-(bperp-R@x4)),
                   M4_H_error_over_H0=hs[-1]['H_error_over_H0'])
     return full, hs, defect, dict(U=U,L=L,g=g,g4=reconstructed[-1],R=R,

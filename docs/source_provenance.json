@@ -193,13 +193,6 @@
       "selection": "entire file"
     },
     {
-      "source": "LICENSE",
-      "path": "LICENSE",
-      "sha256": "7d1a9560f0ebc3ccff7fa5ba8368b661a67a3fd25934ecbbf28e2e5e8a76099d",
-      "run_id": "20260919T021436Z-40be24e6",
-      "selection": "entire file"
-    },
-    {
       "source": "CITATION.cff",
       "path": "CITATION.cff",
       "sha256": "9bb33a9902da689612c8a1e878d153526ffb38362ce61a12978a6789dd06c655",

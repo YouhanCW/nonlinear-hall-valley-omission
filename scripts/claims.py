@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Statement-level quantitative audit of the final main manuscript."""
-import json,re
+import json,re,subprocess,sys
 from pathlib import Path
 import numpy as np
 from nonlinear_hall.io import read_csv,write_json
@@ -52,7 +52,7 @@ add('sections/model.tex','The additional kernel comparison',[settings(['comparis
 f='sections/results.tex'
 add(f,'Figure~\\ref{fig:ablation} compares',[settings(['representatives'])],'Fig. 2')
 add(f,'The first two columns',[reps(['scalar','shape'],['M1_error_H','M2_error_H','M2_error_sigma_xx'])],'Fig. 2')
-add(f,'M3 restores',[reps(['scalar','shape'],['M3_distribution_error','M3_error_H','M4_error_H'])],'Fig. 2',formula='The M3 errors are roundoff; contact analytic closure is derived in Sec. III.B, with passive polarization decoupled for m_P=t_P=0.')
+add(f,'M3 restores',[reps(['scalar','shape'],['M3_distribution_error','M3_error_H','M4_error_H'])],'Fig. 2',formula='The M3 errors are roundoff; contact analytic closure is derived in Sec. IV.A, with passive polarization decoupled for m_P=t_P=0.')
 add(f,'Finite range changes',[reps(['decision_cancellation','matched'],['M1_error_H','M2_error_H','M3_error_H','M3_error_sigma_xx','M4_H','M3_H','M4_error_H','M4_error_Q_A','M4_distribution_error'])],'Fig. 2',formula='Errors * 100; the quoted increment is M4_H-M3_H.')
 add(f,'Conversely, at the weak',[reps(['weak'],['M1_error_H','M1_error_sigma_xx','M1_distribution_error'])],'Fig. 2')
 add(f,'Across all 3510',[validation,source('final_mode_decision_agreement.csv',{'dimension':4})],'Fig. 2; extended Supplement table',formula='Use p95/maximum and below_one_percent in validation; M3 Hall count=1950/3510; M4 agreements are agree/n. Percentages *100.')
@@ -85,6 +85,24 @@ add(f,'\\caption{Scalar and redistribution',[coeff(['weak','decision_cancellatio
 add(f,'\\caption{Positive-coupling decisions',[stats()],'Table I')
 add(f,'\\caption{Observable-specific',[stats(),settings(['tolerances','n','model'])],'Fig. 5')
 add('sections/conclusion.tex','Omission is robustly safe',[stats()],'Table I; conclusion')
+
+# These frequency values originate in executable audit tests rather than a canonical CSV.
+# Re-run that small existing check when regenerating the claim ledger.
+check=subprocess.run([sys.executable,'-m','pytest','-q','-s',
+    'tests/test_scientific_audit.py','-k','frequency_refinement'],cwd=ROOT,
+    text=True,capture_output=True,check=True)
+freq=[json.loads(m.group()) for m in re.finditer(r'\{"case":.*?\}',check.stdout)]
+assert len(freq)==6,check.stdout
+from nonlinear_hall.io import sha
+frequency_source=dict(dataset='tests/test_scientific_audit.py',row_filter={'test':'test_frequency_refinement_and_relaxation_poles'},
+    values=freq,run_id='executable-audit-'+sha(ROOT/'tests/test_scientific_audit.py')[:12])
+add('sections/results.tex','An additional fixed-basis check',[frequency_source],
+    formula='Maxima over the six emitted N=256 records; multiply relative Hall error by 100. Each record checks N=64,128,256 and five stated frequency ratios. These selected checks do not extend the principal DC map uniformly in frequency.')
+add('sections/appendices.tex','The active margin',[settings(['model','principal']),source('final_mass_scaling.csv',aggregate=['m_P'])],formula='Active margin=1.8-1; minimum passive margin=0.4-0.1. These are fixed contour-validity conditions.')
+add('sections/appendices.tex','The code explicitly rotates',[source('gauge_invariance.csv',aggregate=['relative_error'])],formula='Maximum normalized gauge discrepancy, generated as RvGaugeError.')
+add('sections/appendices.tex','The denominator contains',[source('measurement_level_omission.csv',columns=['sample','eta','delta_P','xi','omega','H_real','H_imag'])],formula='Frequency ratios and complex components are retained in this supporting dataset; complex-square convention is analytic.')
+add('sections/appendices.tex','An independent numerical check',[dict(dataset='tests/test_referee_revision.py',row_filter={'test':'test_second_harmonic_sign_and_complex_amplitude_from_time_domain'},values={'source_sha256':sha(ROOT/'tests/test_referee_revision.py')},run_id='executable-audit')],formula='Executable harmonic extraction check: field 0.7+0.2i, 4096 phases, three frequencies. Run make test for the full validation.')
+
 # Every remaining numeral-bearing prose line is reviewed explicitly as a mathematical
 # definition or configuration, not silently passed as an untraced empirical claim.
 analytic=[]
@@ -94,14 +112,14 @@ for p in [ROOT/'manuscript/main.tex',*sorted((ROOT/'manuscript/sections').glob('
   if (file,i) in covered:continue
   txt=re.sub(r'\\(?:cite|ref|eqref|label)\{[^}]*\}','',line)
   if re.match(r'[A-Za-z]|\\caption\{',txt) and re.search(r'\d',txt):
-   analytic.append(dict(location=f'manuscript/{file}:{i}',exact_statement=line,basis='Analytic definition, mode index or model convention; see cited equation and config/study.json. No additional empirical result.'))
+   analytic.append(dict(location=f'manuscript/{file}:{i}',exact_statement=line,basis=('Administrative data-access statement; verify repository availability and pending author actions separately.' if file=='main.tex' else 'Analytic definition, mode index or model convention; see cited equation and config/study.json. No additional empirical result.')))
 write_json(ROOT/'docs/final_claims.json',dict(claims=claims,analytic_and_definition_lines=analytic))
-lines=['# Quantitative manuscript claim audit','','Every empirical numerical statement in the abstract, main text, figure/table captions and conclusion is mapped below to exact printed prose, full-precision values, explicit row filters, configuration and run. A claim block can contain several linked numbers. Percentages and derived ratios state their formulas. Mode labels, equation indices and mathematical constants are definitions rather than fitted data. Supporting-only tables have their own manifest entries.','','Canonical run: `'+RUN+'`. Retained supporting controls explicitly carry their earlier run IDs. Values are generated by `python scripts/claims.py`; they are never hand-transcribed.']
+lines=['# Quantitative manuscript claim audit','','Every empirical numerical statement in the abstract, main text, figure/table captions and conclusion is mapped below to exact printed prose, full-precision values, explicit row filters, configuration and run. A claim block can contain several linked numbers. Percentages and derived ratios state their formulas. Mode labels, equation indices and mathematical constants are definitions rather than fitted data. Supporting-only tables have their own manifest entries. Promoted appendix controls and the executable frequency audit are included below.','','Canonical run: `'+RUN+'`. Retained supporting controls explicitly carry their earlier run IDs. Values are generated by `python scripts/claims.py`; canonical values are read from tables and the selected frequency test is rerun.']
 for i,c in enumerate(claims,1):
- lines += [f'\n## C{i:02d}: {c["location"]}', '', '**Exact statement (LaTeX source):**','',c['exact_statement'],'',f"**Configuration:** {c['configuration']}  ",f"**Figure/table:** {c['figure_table']}  ",f"**Calculation:** {c['calculation']}"]
+ lines += [f'\n## C{i:02d}: {c["location"]}', '', '**Exact statement (LaTeX source):**','',c['exact_statement'],'',f"**Configuration:** {c['configuration']}", '',f"**Figure/table:** {c['figure_table']}", '',f"**Calculation:** {c['calculation']}"]
  for src in c['sources']:
   lines += ['',f"Source: `{src['dataset']}`; run `{src['run_id']}`; filter `{json.dumps(src['row_filter'],sort_keys=True)}`.", '', '```json',json.dumps(src['values'],indent=2,sort_keys=True), '```']
-lines+=['','## Mathematical and definition audit','','The following numeral-bearing prose lines were reviewed separately; the quantities are defined analytically or fixed in the configuration. They make no additional numerical performance claim.']
+lines+=['','## Mathematical, definition and metadata audit','','The following numeral-bearing prose lines were reviewed separately; the quantities are defined analytically or fixed in the configuration, or identify the public repository version in an administrative statement. They make no additional numerical performance claim.']
 for a in analytic:lines+=['',f"- `{a['location']}`: {a['exact_statement']}"]
 (ROOT/'docs/final_claims.md').write_text('\n'.join(lines)+'\n')
 print('Statement-level audit:',len(claims),'empirical/configuration blocks;',len(analytic),'analytic/definition lines for review')
